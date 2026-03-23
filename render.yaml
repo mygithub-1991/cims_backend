@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: cims-backend
+    runtime: python
+    plan: starter
+    autoDeployTrigger: checksPass
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: python -m alembic upgrade head
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 60
+    buildFilter:
+      paths:
+        - app/**
+        - alembic/**
+        - requirements.txt
+        - alembic.ini
+        - run.py
+        - render.yaml
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cims-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: API_RELOAD
+        value: "False"
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+databases:
+  - name: cims-db
+    plan: basic-256mb
+    databaseName: cims_db
+    user: cims_user

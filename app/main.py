@@ -1,11 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.database import engine, Base
-from app.routers import teachers, batches, students, fee_records, attendance, sync
-
-# Create database tables
-Base.metadata.create_all(bind=engine)
+from app.routers import auth, teachers, batches, students, fee_records, attendance, sync
 
 app = FastAPI(
     title="CIMS Backend API",
@@ -23,6 +19,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(teachers.router, prefix="/api/teachers", tags=["Teachers"])
 app.include_router(batches.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(students.router, prefix="/api/students", tags=["Students"])

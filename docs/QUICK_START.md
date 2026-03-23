@@ -45,8 +45,8 @@ cd C:\android\cims_backend
 # Create virtual environment
 python -m venv venv
 
-# Activate (Windows)
-venv\Scripts\activate
+# Activate (Windows PowerShell)
+.\venv\Scripts\Activate.ps1
 
 # Activate (Linux/Mac)
 source venv/bin/activate
@@ -71,6 +71,7 @@ SECRET_KEY=change-this-to-a-random-secret-key
 ### 4. Run the Server
 
 ```bash
+alembic upgrade head
 python run.py
 ```
 
@@ -87,6 +88,35 @@ INFO:     Uvicorn running on http://0.0.0.0:8000
 Open browser and visit:
 - API Docs: http://localhost:8000/docs
 - Health Check: http://localhost:8000/health
+
+### 6. Create First Admin (One-Time)
+
+`/api/auth/register` requires an admin token. For a new database, run this once:
+
+```bash
+curl -X POST "http://localhost:8000/api/auth/bootstrap-admin" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "email": "admin@example.com",
+    "password": "admin",
+    "full_name": "System Admin",
+    "role": "admin"
+  }'
+```
+
+Then login:
+
+```bash
+curl -X POST "http://localhost:8000/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin"
+  }'
+```
+
+Use the returned bearer token for `/api/auth/register` and other protected routes.
 
 ## Test with cURL
 
@@ -142,8 +172,8 @@ pip install -r requirements.txt --force-reinstall
 
 ## Next Steps
 
-1. Read [README.md](README.md) for detailed documentation
-2. Read [ANDROID_INTEGRATION.md](ANDROID_INTEGRATION.md) for mobile app integration
+1. Read [../README.md](../README.md) for detailed documentation
+2. Read [mobile/ANDROID_INTEGRATION.md](mobile/ANDROID_INTEGRATION.md) for mobile app integration
 3. Explore API at http://localhost:8000/docs
 4. Start integrating with Android app
 
@@ -154,6 +184,9 @@ For production deployment, see README.md section on production configuration.
 Key changes needed:
 - Set strong SECRET_KEY
 - Use production database
+- Run alembic upgrade head before starting the app
+- If upgrading an existing database created by older app versions, baseline it once with alembic stamp 20260323_000001 after validating the schema
+- Use a runtime database user without CREATE/ALTER privileges
 - Configure CORS properly
 - Set API_RELOAD=False
 - Use HTTPS

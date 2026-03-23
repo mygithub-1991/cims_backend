@@ -1,6 +1,31 @@
-from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, ForeignKey, Text, Enum
 from sqlalchemy.orm import relationship
 from app.database import Base
+import enum
+
+
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    TEACHER = "teacher"
+    ACCOUNTANT = "accountant"
+    RECEPTION = "reception"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=False)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.RECEPTION)
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(BigInteger, nullable=True)
+    created_at = Column(BigInteger, nullable=False)
+    updated_at = Column(BigInteger, nullable=False)
+    last_login_at = Column(BigInteger, nullable=True)
 
 
 class Teacher(Base):

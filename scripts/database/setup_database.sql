@@ -1,5 +1,6 @@
 -- CIMS Database Setup Script
--- Run this script to create the database and user
+-- Run this script to create the database and user only.
+-- Table creation is handled by Alembic migrations via `alembic upgrade head`.
 
 -- Create database
 CREATE DATABASE cims_db;
