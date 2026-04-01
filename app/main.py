@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import auth, schools, teachers, batches, students, fee_records, attendance, sync
+from app.routers import auth, schools, teachers, batches, students, fee_records, attendance, sync, expenses
 
 app = FastAPI(
     title="CIMS Backend API",
@@ -26,6 +26,7 @@ app.include_router(batches.router, prefix="/api/batches", tags=["Batches"])
 app.include_router(students.router, prefix="/api/students", tags=["Students"])
 app.include_router(fee_records.router, prefix="/api/fee-records", tags=["Fee Records"])
 app.include_router(attendance.router, prefix="/api/attendance", tags=["Attendance"])
+app.include_router(expenses.router)
 app.include_router(sync.router, prefix="/api/sync", tags=["Sync"])
 
 

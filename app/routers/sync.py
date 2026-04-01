@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models import School, Teacher, Batch, Student, FeeRecord, Attendance, SyncLog
+from app.models import School, Teacher, Batch, Student, FeeRecord, Attendance, Expense, SyncLog
 from app.schemas import (
     SyncRequest, SyncResponse, SyncData,
-    SchoolCreate, TeacherCreate, BatchCreate, StudentCreate, FeeRecordCreate, AttendanceCreate,
-    BulkSchoolCreate, BulkTeacherCreate, BulkBatchCreate, BulkStudentCreate, BulkFeeRecordCreate, BulkAttendanceCreate
+    SchoolCreate, TeacherCreate, BatchCreate, StudentCreate, FeeRecordCreate, AttendanceCreate, ExpenseCreate,
+    BulkSchoolCreate, BulkTeacherCreate, BulkBatchCreate, BulkStudentCreate, BulkFeeRecordCreate, BulkAttendanceCreate, BulkExpenseCreate
 )
 import time
 
@@ -29,6 +29,7 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
     students = db.query(Student).filter(Student.updated_at > last_sync).all()
     fee_records = db.query(FeeRecord).filter(FeeRecord.created_at > last_sync).all()
     attendance = db.query(Attendance).filter(Attendance.created_at > last_sync).all()
+    expenses = db.query(Expense).filter(Expense.updated_at > last_sync).all()
 
     sync_data = SyncData(
         schools=schools,
@@ -36,14 +37,15 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
         batches=batches,
         students=students,
         fee_records=fee_records,
-        attendance=attendance
+        attendance=attendance,
+        expenses=expenses
     )
 
     return SyncResponse(
         success=True,
         message=f"Synced {len(schools)} schools, {len(teachers)} teachers, {len(batches)} batches, "
                 f"{len(students)} students, {len(fee_records)} fee records, "
-                f"{len(attendance)} attendance records",
+                f"{len(attendance)} attendance records, {len(expenses)} expenses",
         server_timestamp=server_timestamp,
         data=sync_data
     )
@@ -318,6 +320,54 @@ def push_attendance(bulk_data: BulkAttendanceCreate, db: Session = Depends(get_d
     return {
         "success": True,
         "created": created,
+        "errors": errors
+    }
+
+
+@router.post("/push/expenses")
+def push_expenses(bulk_data: BulkExpenseCreate, db: Session = Depends(get_db)):
+    """Push expense data from mobile device to server"""
+    current_time = int(time.time() * 1000)
+    created = 0
+    updated = 0
+    errors = []
+
+    for expense_data in bulk_data.expenses:
+        try:
+            # Check if expense with matching device_id and created_at exists
+            existing = db.query(Expense).filter(
+                Expense.device_id == expense_data.device_id,
+                Expense.created_at == current_time
+            ).first() if expense_data.device_id else None
+
+            if existing:
+                # Update existing
+                for key, value in expense_data.model_dump(exclude_unset=True, exclude={"device_id"}).items():
+                    setattr(existing, key, value)
+                existing.last_synced_at = current_time
+                existing.updated_at = current_time
+                updated += 1
+            else:
+                # Create new
+                db_expense = Expense(
+                    **expense_data.model_dump(exclude={"device_id"}),
+                    device_id=expense_data.device_id,
+                    created_at=current_time,
+                    updated_at=current_time,
+                    last_synced_at=current_time
+                )
+                db.add(db_expense)
+                created += 1
+
+        except Exception as e:
+            errors.append({"description": getattr(expense_data, 'description', 'Unknown'), "error": str(e)})
+
+    db.commit()
+
+    return {
+        "success": True,
+        "created": created,
+        "updated": updated,
         "errors": errors
     }
 

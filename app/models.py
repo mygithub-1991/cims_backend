@@ -157,6 +157,28 @@ class Attendance(Base):
     student = relationship("Student", back_populates="attendance_records")
 
 
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String(100), nullable=False)  # Rent, Utilities, Salary, etc.
+    description = Column(Text, nullable=False)
+    amount = Column(Float, nullable=False)
+    expense_date = Column(BigInteger, nullable=False, index=True)
+    payment_method = Column(String(50), nullable=False)  # Cash, UPI, Card, etc.
+    vendor_name = Column(String(255), nullable=True)
+    receipt_number = Column(String(100), nullable=True)
+    notes = Column(Text, nullable=True)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(BigInteger, nullable=True)
+    created_at = Column(BigInteger, nullable=False)
+    updated_at = Column(BigInteger, nullable=False)
+
+    # Mobile device tracking
+    device_id = Column(String(255), nullable=True)
+    last_synced_at = Column(BigInteger, nullable=True)
+
+
 class SyncLog(Base):
     """Track sync operations from mobile devices"""
     __tablename__ = "sync_logs"
