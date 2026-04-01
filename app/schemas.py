@@ -198,6 +198,49 @@ class AttendanceResponse(AttendanceBase):
 
 
 # Sync Schemas
+class ExpenseBase(BaseModel):
+    category: str
+    description: str
+    amount: float
+    expense_date: int
+    payment_method: str
+    vendor_name: Optional[str] = None
+    receipt_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ExpenseCreate(ExpenseBase):
+    device_id: Optional[str] = None
+
+
+class ExpenseUpdate(BaseModel):
+    category: Optional[str] = None
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    expense_date: Optional[int] = None
+    payment_method: Optional[str] = None
+    vendor_name: Optional[str] = None
+    receipt_number: Optional[str] = None
+    notes: Optional[str] = None
+    is_deleted: Optional[bool] = None
+    deleted_at: Optional[int] = None
+    updated_at: Optional[int] = None
+
+
+class ExpenseResponse(ExpenseBase):
+    id: int
+    is_deleted: bool
+    deleted_at: Optional[int]
+    created_at: int
+    updated_at: int
+    last_synced_at: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+
+class BulkExpenseCreate(BaseModel):
+    expenses: List[ExpenseCreate]
 class SyncRequest(BaseModel):
     device_id: str
     last_sync_timestamp: int  # Client's last sync time
@@ -246,46 +289,3 @@ class BulkAttendanceCreate(BaseModel):
 
 
 # Expense Schemas
-class ExpenseBase(BaseModel):
-    category: str
-    description: str
-    amount: float
-    expense_date: int
-    payment_method: str
-    vendor_name: Optional[str] = None
-    receipt_number: Optional[str] = None
-    notes: Optional[str] = None
-
-
-class ExpenseCreate(ExpenseBase):
-    device_id: Optional[str] = None
-
-
-class ExpenseUpdate(BaseModel):
-    category: Optional[str] = None
-    description: Optional[str] = None
-    amount: Optional[float] = None
-    expense_date: Optional[int] = None
-    payment_method: Optional[str] = None
-    vendor_name: Optional[str] = None
-    receipt_number: Optional[str] = None
-    notes: Optional[str] = None
-    is_deleted: Optional[bool] = None
-    deleted_at: Optional[int] = None
-    updated_at: Optional[int] = None
-
-
-class ExpenseResponse(ExpenseBase):
-    id: int
-    is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    updated_at: int
-    last_synced_at: Optional[int]
-
-    class Config:
-        from_attributes = True
-
-
-class BulkExpenseCreate(BaseModel):
-    expenses: List[ExpenseCreate]
