@@ -50,3 +50,12 @@ Thumbs.db
 
 # Alembic
 alembic/versions/*.pyc
+
+# Claude Code
+.claude/
+
+# Backup files
+*.backup
+
+# Temporary scripts
+fix_*.py
