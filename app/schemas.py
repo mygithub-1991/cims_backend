@@ -3,6 +3,38 @@ from typing import Optional, List
 from datetime import datetime
 
 
+# School Schemas
+class SchoolBase(BaseModel):
+    school_name: str
+    address: str
+    pincode: str
+
+
+class SchoolCreate(SchoolBase):
+    device_id: Optional[str] = None
+
+
+class SchoolUpdate(BaseModel):
+    school_name: Optional[str] = None
+    address: Optional[str] = None
+    pincode: Optional[str] = None
+    is_deleted: Optional[bool] = None
+    deleted_at: Optional[int] = None
+    updated_at: Optional[int] = None
+
+
+class SchoolResponse(SchoolBase):
+    id: int
+    is_deleted: bool
+    deleted_at: Optional[int]
+    created_at: int
+    updated_at: int
+    last_synced_at: Optional[int]
+
+    class Config:
+        from_attributes = True
+
+
 # Teacher Schemas
 class TeacherBase(BaseModel):
     name: str
@@ -82,6 +114,8 @@ class StudentBase(BaseModel):
     payment_mode: str
     installment_type: Optional[str] = None
     referred_by: Optional[str] = None
+    board: Optional[str] = None
+    school_id: Optional[int] = None
 
 
 class StudentCreate(StudentBase):
@@ -97,6 +131,8 @@ class StudentUpdate(BaseModel):
     payment_mode: Optional[str] = None
     installment_type: Optional[str] = None
     referred_by: Optional[str] = None
+    board: Optional[str] = None
+    school_id: Optional[int] = None
     is_deleted: Optional[bool] = None
     deleted_at: Optional[int] = None
     updated_at: Optional[int] = None
@@ -168,6 +204,7 @@ class SyncRequest(BaseModel):
 
 
 class SyncData(BaseModel):
+    schools: List[SchoolResponse] = []
     teachers: List[TeacherResponse] = []
     batches: List[BatchResponse] = []
     students: List[StudentResponse] = []
@@ -183,6 +220,10 @@ class SyncResponse(BaseModel):
 
 
 # Bulk operations for sync
+class BulkSchoolCreate(BaseModel):
+    schools: List[SchoolCreate]
+
+
 class BulkTeacherCreate(BaseModel):
     teachers: List[TeacherCreate]
 

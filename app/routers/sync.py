@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models import Teacher, Batch, Student, FeeRecord, Attendance, SyncLog
+from app.models import School, Teacher, Batch, Student, FeeRecord, Attendance, SyncLog
 from app.schemas import (
     SyncRequest, SyncResponse, SyncData,
-    TeacherCreate, BatchCreate, StudentCreate, FeeRecordCreate, AttendanceCreate,
-    BulkTeacherCreate, BulkBatchCreate, BulkStudentCreate, BulkFeeRecordCreate, BulkAttendanceCreate
+    SchoolCreate, TeacherCreate, BatchCreate, StudentCreate, FeeRecordCreate, AttendanceCreate,
+    BulkSchoolCreate, BulkTeacherCreate, BulkBatchCreate, BulkStudentCreate, BulkFeeRecordCreate, BulkAttendanceCreate
 )
 import time
 
@@ -23,6 +23,7 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
     server_timestamp = int(time.time() * 1000)
 
     # Fetch all data updated after last sync
+    schools = db.query(School).filter(School.updated_at > last_sync).all()
     teachers = db.query(Teacher).filter(Teacher.updated_at > last_sync).all()
     batches = db.query(Batch).filter(Batch.updated_at > last_sync).all()
     students = db.query(Student).filter(Student.updated_at > last_sync).all()
@@ -30,6 +31,7 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
     attendance = db.query(Attendance).filter(Attendance.created_at > last_sync).all()
 
     sync_data = SyncData(
+        schools=schools,
         teachers=teachers,
         batches=batches,
         students=students,
@@ -39,12 +41,64 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
 
     return SyncResponse(
         success=True,
-        message=f"Synced {len(teachers)} teachers, {len(batches)} batches, "
+        message=f"Synced {len(schools)} schools, {len(teachers)} teachers, {len(batches)} batches, "
                 f"{len(students)} students, {len(fee_records)} fee records, "
                 f"{len(attendance)} attendance records",
         server_timestamp=server_timestamp,
         data=sync_data
     )
+
+
+@router.post("/push/schools")
+def push_schools(bulk_data: BulkSchoolCreate, db: Session = Depends(get_db)):
+    """Push school data from mobile device to server"""
+    current_time = int(time.time() * 1000)
+    created = 0
+    updated = 0
+    errors = []
+
+    for school_data in bulk_data.schools:
+        try:
+            # Check if school exists by device_id or by matching unique fields
+            existing = None
+            if school_data.device_id:
+                existing = db.query(School).filter(
+                    School.device_id == school_data.device_id,
+                    School.school_name == school_data.school_name
+                ).first()
+
+            if existing:
+                # Update existing
+                update_data = school_data.model_dump(exclude={"device_id"})
+                update_data["updated_at"] = current_time
+                update_data["last_synced_at"] = current_time
+
+                for field, value in update_data.items():
+                    setattr(existing, field, value)
+                updated += 1
+            else:
+                # Create new
+                db_school = School(
+                    **school_data.model_dump(exclude={"device_id"}),
+                    device_id=school_data.device_id,
+                    created_at=current_time,
+                    updated_at=current_time,
+                    last_synced_at=current_time
+                )
+                db.add(db_school)
+                created += 1
+
+        except Exception as e:
+            errors.append({"school": school_data.school_name, "error": str(e)})
+
+    db.commit()
+
+    return {
+        "success": True,
+        "created": created,
+        "updated": updated,
+        "errors": errors
+    }
 
 
 @router.post("/push/teachers")

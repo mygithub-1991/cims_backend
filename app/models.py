@@ -28,6 +28,25 @@ class User(Base):
     last_login_at = Column(BigInteger, nullable=True)
 
 
+class School(Base):
+    __tablename__ = "schools"
+
+    id = Column(Integer, primary_key=True, index=True)
+    school_name = Column(String(255), nullable=False)
+    address = Column(String(500), nullable=False)
+    pincode = Column(String(20), nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(BigInteger, nullable=True)
+    created_at = Column(BigInteger, nullable=False)
+    updated_at = Column(BigInteger, nullable=False)
+
+    # Mobile device tracking
+    device_id = Column(String(255), nullable=True)
+    last_synced_at = Column(BigInteger, nullable=True)
+
+    students = relationship("Student", back_populates="school")
+
+
 class Teacher(Base):
     __tablename__ = "teachers"
 
@@ -82,6 +101,8 @@ class Student(Base):
     payment_mode = Column(String(50), nullable=False)
     installment_type = Column(String(50), nullable=True)
     referred_by = Column(String(255), nullable=True)
+    board = Column(String(100), nullable=True)
+    school_id = Column(Integer, ForeignKey("schools.id", ondelete="NO ACTION"), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(BigInteger, nullable=True)
     created_at = Column(BigInteger, nullable=False)
@@ -92,6 +113,7 @@ class Student(Base):
     last_synced_at = Column(BigInteger, nullable=True)
 
     batch = relationship("Batch", back_populates="students")
+    school = relationship("School", back_populates="students")
     fee_records = relationship("FeeRecord", back_populates="student")
     attendance_records = relationship("Attendance", back_populates="student")
 
