@@ -15,14 +15,22 @@ def get_students(
     limit: int = 100,
     include_deleted: bool = False,
     batch_id: int = None,
+    search: str = None,
     db: Session = Depends(get_db)
 ):
-    """Get all students"""
+    """Get all students with optional search"""
     query = db.query(Student)
     if not include_deleted:
         query = query.filter(Student.is_deleted == False)
     if batch_id:
         query = query.filter(Student.batch_id == batch_id)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            (Student.name.ilike(search_pattern)) |
+            (Student.roll_number.ilike(search_pattern)) |
+            (Student.contact_number.ilike(search_pattern))
+        )
     students = query.offset(skip).limit(limit).all()
     return students
 

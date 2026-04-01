@@ -17,10 +17,11 @@ def get_expenses(
     category: Optional[str] = None,
     start_date: Optional[int] = None,
     end_date: Optional[int] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all expenses with optional filtering"""
+    """Get all expenses with optional filtering and search"""
     query = db.query(Expense).filter(Expense.is_deleted == False)
 
     if category:
@@ -31,6 +32,15 @@ def get_expenses(
 
     if end_date:
         query = query.filter(Expense.expense_date <= end_date)
+
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            (Expense.category.ilike(search_pattern)) |
+            (Expense.description.ilike(search_pattern)) |
+            (Expense.vendor_name.ilike(search_pattern)) |
+            (Expense.receipt_number.ilike(search_pattern))
+        )
 
     return query.order_by(Expense.expense_date.desc()).offset(skip).limit(limit).all()
 

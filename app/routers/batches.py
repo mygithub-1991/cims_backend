@@ -14,12 +14,19 @@ def get_batches(
     skip: int = 0,
     limit: int = 100,
     include_deleted: bool = False,
+    search: str = None,
     db: Session = Depends(get_db)
 ):
-    """Get all batches"""
+    """Get all batches with optional search"""
     query = db.query(Batch)
     if not include_deleted:
         query = query.filter(Batch.is_deleted == False)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            (Batch.name.ilike(search_pattern)) |
+            (Batch.time.ilike(search_pattern))
+        )
     batches = query.offset(skip).limit(limit).all()
     return batches
 
