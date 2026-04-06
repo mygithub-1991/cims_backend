@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, field_serializer
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Any
 from datetime import datetime
 
@@ -45,9 +45,14 @@ class SchoolResponse(SchoolBase):
     updated_at: int
     last_synced_at: Optional[int]
 
-    @field_serializer('deleted_at', 'created_at', 'updated_at', 'last_synced_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
-        return datetime_to_timestamp(dt)
+    @field_validator('deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -85,9 +90,14 @@ class TeacherResponse(TeacherBase):
     updated_at: int
     last_synced_at: Optional[int]
 
-    @field_serializer('date_of_joining', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
-        return datetime_to_timestamp(dt)
+    @field_validator('date_of_joining', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -121,9 +131,14 @@ class BatchResponse(BatchBase):
     updated_at: int
     last_synced_at: Optional[int]
 
-    @field_serializer('deleted_at', 'created_at', 'updated_at', 'last_synced_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
-        return datetime_to_timestamp(dt)
+    @field_validator('deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -172,9 +187,14 @@ class StudentResponse(StudentBase):
     updated_at: int
     last_synced_at: Optional[int]
 
-    @field_serializer('deleted_at', 'created_at', 'updated_at', 'last_synced_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
-        return datetime_to_timestamp(dt)
+    @field_validator('deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -201,9 +221,14 @@ class FeeRecordResponse(FeeRecordBase):
     created_at: int
     last_synced_at: Optional[int]
 
-    @field_serializer('date', 'deleted_at', 'created_at', 'last_synced_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
-        return datetime_to_timestamp(dt)
+    @field_validator('date', 'deleted_at', 'created_at', 'last_synced_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -227,9 +252,14 @@ class AttendanceResponse(AttendanceBase):
     created_at: int
     last_synced_at: Optional[int]
 
-    @field_serializer('date', 'deleted_at', 'created_at', 'last_synced_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
-        return datetime_to_timestamp(dt)
+    @field_validator('date', 'deleted_at', 'created_at', 'last_synced_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -273,9 +303,14 @@ class ExpenseResponse(ExpenseBase):
     updated_at: int
     last_synced_at: Optional[int]
 
-    @field_serializer('expense_date', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at')
-    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
-        return datetime_to_timestamp(dt)
+    @field_validator('expense_date', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True

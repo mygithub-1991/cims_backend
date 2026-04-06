@@ -1,5 +1,13 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional, Any
+from datetime import datetime
+
+
+def datetime_to_timestamp(dt: Optional[datetime]) -> Optional[int]:
+    """Convert datetime to Unix timestamp (milliseconds)"""
+    if dt is None:
+        return None
+    return int(dt.timestamp() * 1000)
 
 
 class LoginRequest(BaseModel):
@@ -31,6 +39,16 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: int
     last_login_at: Optional[int]
+
+    @field_validator('created_at', 'last_login_at', mode='before')
+    @classmethod
+    def convert_datetime_to_timestamp(cls, v: Any) -> Optional[int]:
+        """Convert datetime to timestamp for API response"""
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return datetime_to_timestamp(v)
+        return v
 
     class Config:
         from_attributes = True
