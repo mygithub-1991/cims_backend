@@ -27,11 +27,14 @@ def get_expenses(
     if category:
         query = query.filter(Expense.category == category)
 
+    # Convert timestamp parameters to datetime for comparison
     if start_date:
-        query = query.filter(Expense.expense_date >= start_date)
+        start_dt = timestamp_to_datetime(start_date)
+        query = query.filter(Expense.expense_date >= start_dt)
 
     if end_date:
-        query = query.filter(Expense.expense_date <= end_date)
+        end_dt = timestamp_to_datetime(end_date)
+        query = query.filter(Expense.expense_date <= end_dt)
 
     if search:
         search_pattern = f"%{search}%"
@@ -202,11 +205,14 @@ def get_expense_stats(
     """Get expense statistics"""
     query = db.query(Expense).filter(Expense.is_deleted == False)
 
+    # Convert timestamp parameters to datetime for comparison
     if start_date:
-        query = query.filter(Expense.expense_date >= start_date)
+        start_dt = timestamp_to_datetime(start_date)
+        query = query.filter(Expense.expense_date >= start_dt)
 
     if end_date:
-        query = query.filter(Expense.expense_date <= end_date)
+        end_dt = timestamp_to_datetime(end_date)
+        query = query.filter(Expense.expense_date <= end_dt)
 
     expenses = query.all()
 

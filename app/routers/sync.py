@@ -8,7 +8,7 @@ from app.schemas import (
     SyncRequest, SyncResponse, SyncData,
     SchoolCreate, TeacherCreate, BatchCreate, StudentCreate, FeeRecordCreate, AttendanceCreate, ExpenseCreate,
     BulkSchoolCreate, BulkTeacherCreate, BulkBatchCreate, BulkStudentCreate, BulkFeeRecordCreate, BulkAttendanceCreate, BulkExpenseCreate,
-    timestamp_to_datetime
+    timestamp_to_datetime, datetime_to_timestamp
 )
 
 router = APIRouter()
@@ -22,7 +22,7 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
     """
     # Convert last_sync timestamp to datetime
     last_sync = timestamp_to_datetime(sync_request.last_sync_timestamp)
-    server_timestamp = int(datetime.utcnow().timestamp() * 1000)
+    server_timestamp = datetime_to_timestamp(datetime.utcnow())
 
     # Fetch all data updated after last sync
     schools = db.query(School).filter(School.updated_at > last_sync).all()

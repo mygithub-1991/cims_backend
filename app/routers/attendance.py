@@ -26,17 +26,23 @@ def get_attendance(
     if student_id:
         query = query.filter(Attendance.student_id == student_id)
 
+    # Convert timestamp parameters to datetime for comparison
     if date:
-        query = query.filter(Attendance.date == date)
+        date_dt = timestamp_to_datetime(date)
+        query = query.filter(func.date(Attendance.date) == func.date(date_dt))
     elif start_date and end_date:
+        start_dt = timestamp_to_datetime(start_date)
+        end_dt = timestamp_to_datetime(end_date)
         query = query.filter(and_(
-            Attendance.date >= start_date,
-            Attendance.date <= end_date
+            Attendance.date >= start_dt,
+            Attendance.date <= end_dt
         ))
     elif start_date:
-        query = query.filter(Attendance.date >= start_date)
+        start_dt = timestamp_to_datetime(start_date)
+        query = query.filter(Attendance.date >= start_dt)
     elif end_date:
-        query = query.filter(Attendance.date <= end_date)
+        end_dt = timestamp_to_datetime(end_date)
+        query = query.filter(Attendance.date <= end_dt)
 
     attendance = query.order_by(Attendance.date.desc()).offset(skip).limit(limit).all()
     return attendance
@@ -125,12 +131,16 @@ def get_attendance_by_batch(
         Attendance.is_deleted == False
     )
 
+    # Convert timestamp parameters to datetime for comparison
     if date:
-        query = query.filter(Attendance.date == date)
+        date_dt = timestamp_to_datetime(date)
+        query = query.filter(func.date(Attendance.date) == func.date(date_dt))
     elif start_date and end_date:
+        start_dt = timestamp_to_datetime(start_date)
+        end_dt = timestamp_to_datetime(end_date)
         query = query.filter(and_(
-            Attendance.date >= start_date,
-            Attendance.date <= end_date
+            Attendance.date >= start_dt,
+            Attendance.date <= end_dt
         ))
 
     return query.order_by(Attendance.date.desc()).all()
