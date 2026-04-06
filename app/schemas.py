@@ -1,6 +1,20 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, field_serializer
+from typing import Optional, List, Any
 from datetime import datetime
+
+
+def datetime_to_timestamp(dt: Optional[datetime]) -> Optional[int]:
+    """Convert datetime to Unix timestamp (milliseconds)"""
+    if dt is None:
+        return None
+    return int(dt.timestamp() * 1000)
+
+
+def timestamp_to_datetime(ts: Optional[int]) -> Optional[datetime]:
+    """Convert Unix timestamp (milliseconds) to datetime"""
+    if ts is None:
+        return None
+    return datetime.fromtimestamp(ts / 1000)
 
 
 # School Schemas
@@ -31,6 +45,10 @@ class SchoolResponse(SchoolBase):
     updated_at: int
     last_synced_at: Optional[int]
 
+    @field_serializer('deleted_at', 'created_at', 'updated_at', 'last_synced_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
+        return datetime_to_timestamp(dt)
+
     class Config:
         from_attributes = True
 
@@ -41,7 +59,7 @@ class TeacherBase(BaseModel):
     subject: str
     contact_number: str
     salary: float
-    date_of_joining: int
+    date_of_joining: int  # Timestamp for API
 
 
 class TeacherCreate(TeacherBase):
@@ -66,6 +84,10 @@ class TeacherResponse(TeacherBase):
     created_at: int
     updated_at: int
     last_synced_at: Optional[int]
+
+    @field_serializer('date_of_joining', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
+        return datetime_to_timestamp(dt)
 
     class Config:
         from_attributes = True
@@ -98,6 +120,10 @@ class BatchResponse(BatchBase):
     created_at: int
     updated_at: int
     last_synced_at: Optional[int]
+
+    @field_serializer('deleted_at', 'created_at', 'updated_at', 'last_synced_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
+        return datetime_to_timestamp(dt)
 
     class Config:
         from_attributes = True
@@ -146,6 +172,10 @@ class StudentResponse(StudentBase):
     updated_at: int
     last_synced_at: Optional[int]
 
+    @field_serializer('deleted_at', 'created_at', 'updated_at', 'last_synced_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
+        return datetime_to_timestamp(dt)
+
     class Config:
         from_attributes = True
 
@@ -171,6 +201,10 @@ class FeeRecordResponse(FeeRecordBase):
     created_at: int
     last_synced_at: Optional[int]
 
+    @field_serializer('date', 'deleted_at', 'created_at', 'last_synced_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
+        return datetime_to_timestamp(dt)
+
     class Config:
         from_attributes = True
 
@@ -192,6 +226,10 @@ class AttendanceResponse(AttendanceBase):
     deleted_at: Optional[int]
     created_at: int
     last_synced_at: Optional[int]
+
+    @field_serializer('date', 'deleted_at', 'created_at', 'last_synced_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
+        return datetime_to_timestamp(dt)
 
     class Config:
         from_attributes = True
@@ -234,6 +272,10 @@ class ExpenseResponse(ExpenseBase):
     created_at: int
     updated_at: int
     last_synced_at: Optional[int]
+
+    @field_serializer('expense_date', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[int]:
+        return datetime_to_timestamp(dt)
 
     class Config:
         from_attributes = True

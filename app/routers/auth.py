@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from datetime import datetime
 from app.database import get_db
 from app.models import User, UserRole
 from app.auth import (
@@ -18,7 +19,6 @@ from app.auth_schemas import (
     ChangePasswordRequest,
     RolePermissions
 )
-import time
 
 router = APIRouter()
 
@@ -47,15 +47,13 @@ def bootstrap_admin(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered",
         )
 
-    current_time = int(time.time() * 1000)
     db_user = User(
         username=user_data.username,
         email=user_data.email,
         hashed_password=get_password_hash(user_data.password),
         full_name=user_data.full_name,
-        role=UserRole.ADMIN,
-        created_at=current_time,
-        updated_at=current_time,
+        role=UserRole.ADMIN
+        # created_at and updated_at use defaults from model
     )
 
     db.add(db_user)
@@ -83,7 +81,7 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         )
 
     # Update last login time
-    user.last_login_at = int(time.time() * 1000)
+    user.last_login_at = datetime.utcnow()
     db.commit()
 
     # Create access token
@@ -129,7 +127,6 @@ def register(
         )
 
     # Create user
-    current_time = int(time.time() * 1000)
     requested_role = UserRole(user_data.role)
 
     db_user = User(
@@ -137,9 +134,8 @@ def register(
         email=user_data.email,
         hashed_password=get_password_hash(user_data.password),
         full_name=user_data.full_name,
-        role=requested_role,
-        created_at=current_time,
-        updated_at=current_time
+        role=requested_role
+        # created_at and updated_at use defaults from model
     )
 
     db.add(db_user)
@@ -168,7 +164,7 @@ async def update_current_user(
     if "role" in update_data:
         del update_data["role"]
 
-    update_data["updated_at"] = int(time.time() * 1000)
+    update_data["updated_at"] = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(current_user, field, value)
@@ -193,7 +189,7 @@ async def change_password(
         )
 
     current_user.hashed_password = get_password_hash(password_data.new_password)
-    current_user.updated_at = int(time.time() * 1000)
+    current_user.updated_at = datetime.utcnow()
     db.commit()
 
     return {"message": "Password changed successfully"}
@@ -247,7 +243,7 @@ async def update_user(
                 detail=f"Invalid role. Must be one of: {[r.value for r in UserRole]}",
             )
 
-    update_data["updated_at"] = int(time.time() * 1000)
+    update_data["updated_at"] = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(user, field, value)
@@ -276,8 +272,8 @@ async def delete_user(
         )
 
     user.is_deleted = True
-    user.deleted_at = int(time.time() * 1000)
-    user.updated_at = int(time.time() * 1000)
+    user.deleted_at = datetime.utcnow()
+    user.updated_at = datetime.utcnow()
     db.commit()
 
     return {"message": "User deleted successfully"}

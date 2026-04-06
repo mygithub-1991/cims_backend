@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
 from app.database import get_db
 from app.models import Expense
-from app.schemas import ExpenseCreate, ExpenseUpdate, ExpenseResponse, BulkExpenseCreate
+from app.schemas import ExpenseCreate, ExpenseUpdate, ExpenseResponse, BulkExpenseCreate, timestamp_to_datetime
 from app.auth import get_current_user
-import time
 
 router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
@@ -65,21 +65,19 @@ def create_expense(
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new expense"""
-    current_time = int(time.time() * 1000)
-
+    # Convert timestamp to datetime for expense_date
     db_expense = Expense(
         category=expense.category,
         description=expense.description,
         amount=expense.amount,
-        expense_date=expense.expense_date,
+        expense_date=timestamp_to_datetime(expense.expense_date),
         payment_method=expense.payment_method,
         vendor_name=expense.vendor_name,
         receipt_number=expense.receipt_number,
         notes=expense.notes,
         device_id=expense.device_id,
-        created_at=current_time,
-        updated_at=current_time,
-        last_synced_at=current_time
+        last_synced_at=datetime.utcnow()
+        # created_at and updated_at use defaults from model
     )
 
     db.add(db_expense)
@@ -101,8 +99,16 @@ def update_expense(
         raise HTTPException(status_code=404, detail="Expense not found")
 
     update_data = expense.dict(exclude_unset=True)
-    if not update_data.get("updated_at"):
-        update_data["updated_at"] = int(time.time() * 1000)
+
+    # Convert timestamp fields to datetime
+    if "expense_date" in update_data and update_data["expense_date"] is not None:
+        update_data["expense_date"] = timestamp_to_datetime(update_data["expense_date"])
+    if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+        update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+    if "updated_at" in update_data and update_data["updated_at"] is not None:
+        update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+    else:
+        update_data["updated_at"] = datetime.utcnow()
 
     for key, value in update_data.items():
         setattr(db_expense, key, value)
@@ -128,7 +134,7 @@ def delete_expense(
         db.delete(db_expense)
     else:
         db_expense.is_deleted = True
-        db_expense.deleted_at = int(time.time() * 1000)
+        db_expense.deleted_at = datetime.utcnow()
 
     db.commit()
     return {"message": "Expense deleted successfully"}
@@ -147,7 +153,7 @@ def restore_expense(
 
     db_expense.is_deleted = False
     db_expense.deleted_at = None
-    db_expense.updated_at = int(time.time() * 1000)
+    db_expense.updated_at = datetime.utcnow()
 
     db.commit()
     return {"message": "Expense restored successfully"}
@@ -160,7 +166,6 @@ def create_bulk_expenses(
     current_user: dict = Depends(get_current_user)
 ):
     """Create multiple expenses in a single request"""
-    current_time = int(time.time() * 1000)
     db_expenses = []
 
     for expense in bulk_data.expenses:
@@ -168,15 +173,14 @@ def create_bulk_expenses(
             category=expense.category,
             description=expense.description,
             amount=expense.amount,
-            expense_date=expense.expense_date,
+            expense_date=timestamp_to_datetime(expense.expense_date),
             payment_method=expense.payment_method,
             vendor_name=expense.vendor_name,
             receipt_number=expense.receipt_number,
             notes=expense.notes,
             device_id=expense.device_id,
-            created_at=current_time,
-            updated_at=current_time,
-            last_synced_at=current_time
+            last_synced_at=datetime.utcnow()
+            # created_at and updated_at use defaults from model
         )
         db_expenses.append(db_expense)
 

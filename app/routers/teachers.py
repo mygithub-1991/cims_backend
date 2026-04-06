@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from app.database import get_db
 from app.models import Teacher
-from app.schemas import TeacherCreate, TeacherUpdate, TeacherResponse
-import time
+from app.schemas import TeacherCreate, TeacherUpdate, TeacherResponse, timestamp_to_datetime
 
 router = APIRouter()
 
@@ -44,13 +44,15 @@ def get_teacher(teacher_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=TeacherResponse, status_code=status.HTTP_201_CREATED)
 def create_teacher(teacher: TeacherCreate, db: Session = Depends(get_db)):
     """Create a new teacher"""
-    current_time = int(time.time() * 1000)
+    # Convert timestamp to datetime for date_of_joining
+    teacher_data = teacher.model_dump(exclude={"device_id"})
+    teacher_data["date_of_joining"] = timestamp_to_datetime(teacher.date_of_joining)
+
     db_teacher = Teacher(
-        **teacher.model_dump(exclude={"device_id"}),
+        **teacher_data,
         device_id=teacher.device_id,
-        created_at=current_time,
-        updated_at=current_time,
-        last_synced_at=current_time
+        last_synced_at=datetime.utcnow()
+        # created_at and updated_at use defaults from model
     )
     db.add(db_teacher)
     db.commit()
@@ -70,9 +72,18 @@ def update_teacher(
         raise HTTPException(status_code=404, detail="Teacher not found")
 
     update_data = teacher.model_dump(exclude_unset=True)
-    if not update_data.get("updated_at"):
-        update_data["updated_at"] = int(time.time() * 1000)
-    update_data["last_synced_at"] = int(time.time() * 1000)
+
+    # Convert timestamp fields to datetime
+    if "date_of_joining" in update_data and update_data["date_of_joining"] is not None:
+        update_data["date_of_joining"] = timestamp_to_datetime(update_data["date_of_joining"])
+    if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+        update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+    if "updated_at" in update_data and update_data["updated_at"] is not None:
+        update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+    else:
+        update_data["updated_at"] = datetime.utcnow()
+
+    update_data["last_synced_at"] = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(db_teacher, field, value)
@@ -91,8 +102,8 @@ def delete_teacher(teacher_id: int, soft: bool = True, db: Session = Depends(get
 
     if soft:
         db_teacher.is_deleted = True
-        db_teacher.deleted_at = int(time.time() * 1000)
-        db_teacher.updated_at = int(time.time() * 1000)
+        db_teacher.deleted_at = datetime.utcnow()
+        db_teacher.updated_at = datetime.utcnow()
         db.commit()
         return {"message": "Teacher soft deleted successfully"}
     else:
@@ -110,7 +121,7 @@ def restore_teacher(teacher_id: int, db: Session = Depends(get_db)):
 
     db_teacher.is_deleted = False
     db_teacher.deleted_at = None
-    db_teacher.updated_at = int(time.time() * 1000)
+    db_teacher.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_teacher)
     return db_teacher

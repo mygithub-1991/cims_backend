@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from app.database import get_db
 from app.models import School, Teacher, Batch, Student, FeeRecord, Attendance, Expense, SyncLog
 from app.schemas import (
     SyncRequest, SyncResponse, SyncData,
     SchoolCreate, TeacherCreate, BatchCreate, StudentCreate, FeeRecordCreate, AttendanceCreate, ExpenseCreate,
-    BulkSchoolCreate, BulkTeacherCreate, BulkBatchCreate, BulkStudentCreate, BulkFeeRecordCreate, BulkAttendanceCreate, BulkExpenseCreate
+    BulkSchoolCreate, BulkTeacherCreate, BulkBatchCreate, BulkStudentCreate, BulkFeeRecordCreate, BulkAttendanceCreate, BulkExpenseCreate,
+    timestamp_to_datetime
 )
-import time
 
 router = APIRouter()
 
@@ -19,8 +20,9 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
     Pull data from server that has been updated since last sync
     Client sends their last sync timestamp, server returns all changes since then
     """
-    last_sync = sync_request.last_sync_timestamp
-    server_timestamp = int(time.time() * 1000)
+    # Convert last_sync timestamp to datetime
+    last_sync = timestamp_to_datetime(sync_request.last_sync_timestamp)
+    server_timestamp = int(datetime.utcnow().timestamp() * 1000)
 
     # Fetch all data updated after last sync
     schools = db.query(School).filter(School.updated_at > last_sync).all()
@@ -54,7 +56,6 @@ def pull_sync(sync_request: SyncRequest, db: Session = Depends(get_db)):
 @router.post("/push/schools")
 def push_schools(bulk_data: BulkSchoolCreate, db: Session = Depends(get_db)):
     """Push school data from mobile device to server"""
-    current_time = int(time.time() * 1000)
     created = 0
     updated = 0
     errors = []
@@ -72,8 +73,16 @@ def push_schools(bulk_data: BulkSchoolCreate, db: Session = Depends(get_db)):
             if existing:
                 # Update existing
                 update_data = school_data.model_dump(exclude={"device_id"})
-                update_data["updated_at"] = current_time
-                update_data["last_synced_at"] = current_time
+
+                # Convert timestamp fields to datetime
+                if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+                    update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+                if "updated_at" in update_data and update_data["updated_at"] is not None:
+                    update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+                else:
+                    update_data["updated_at"] = datetime.utcnow()
+
+                update_data["last_synced_at"] = datetime.utcnow()
 
                 for field, value in update_data.items():
                     setattr(existing, field, value)
@@ -83,9 +92,8 @@ def push_schools(bulk_data: BulkSchoolCreate, db: Session = Depends(get_db)):
                 db_school = School(
                     **school_data.model_dump(exclude={"device_id"}),
                     device_id=school_data.device_id,
-                    created_at=current_time,
-                    updated_at=current_time,
-                    last_synced_at=current_time
+                    last_synced_at=datetime.utcnow()
+                    # created_at and updated_at use defaults from model
                 )
                 db.add(db_school)
                 created += 1
@@ -106,7 +114,6 @@ def push_schools(bulk_data: BulkSchoolCreate, db: Session = Depends(get_db)):
 @router.post("/push/teachers")
 def push_teachers(bulk_data: BulkTeacherCreate, db: Session = Depends(get_db)):
     """Push teacher data from mobile device to server"""
-    current_time = int(time.time() * 1000)
     created = 0
     updated = 0
     errors = []
@@ -124,20 +131,32 @@ def push_teachers(bulk_data: BulkTeacherCreate, db: Session = Depends(get_db)):
             if existing:
                 # Update existing
                 update_data = teacher_data.model_dump(exclude={"device_id"})
-                update_data["updated_at"] = current_time
-                update_data["last_synced_at"] = current_time
+
+                # Convert timestamp fields to datetime
+                if "date_of_joining" in update_data and update_data["date_of_joining"] is not None:
+                    update_data["date_of_joining"] = timestamp_to_datetime(update_data["date_of_joining"])
+                if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+                    update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+                if "updated_at" in update_data and update_data["updated_at"] is not None:
+                    update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+                else:
+                    update_data["updated_at"] = datetime.utcnow()
+
+                update_data["last_synced_at"] = datetime.utcnow()
 
                 for field, value in update_data.items():
                     setattr(existing, field, value)
                 updated += 1
             else:
-                # Create new
+                # Create new - convert date_of_joining
+                teacher_dict = teacher_data.model_dump(exclude={"device_id"})
+                teacher_dict["date_of_joining"] = timestamp_to_datetime(teacher_data.date_of_joining)
+
                 db_teacher = Teacher(
-                    **teacher_data.model_dump(exclude={"device_id"}),
+                    **teacher_dict,
                     device_id=teacher_data.device_id,
-                    created_at=current_time,
-                    updated_at=current_time,
-                    last_synced_at=current_time
+                    last_synced_at=datetime.utcnow()
+                    # created_at and updated_at use defaults from model
                 )
                 db.add(db_teacher)
                 created += 1
@@ -158,7 +177,6 @@ def push_teachers(bulk_data: BulkTeacherCreate, db: Session = Depends(get_db)):
 @router.post("/push/batches")
 def push_batches(bulk_data: BulkBatchCreate, db: Session = Depends(get_db)):
     """Push batch data from mobile device to server"""
-    current_time = int(time.time() * 1000)
     created = 0
     updated = 0
     errors = []
@@ -174,8 +192,16 @@ def push_batches(bulk_data: BulkBatchCreate, db: Session = Depends(get_db)):
 
             if existing:
                 update_data = batch_data.model_dump(exclude={"device_id"})
-                update_data["updated_at"] = current_time
-                update_data["last_synced_at"] = current_time
+
+                # Convert timestamp fields to datetime
+                if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+                    update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+                if "updated_at" in update_data and update_data["updated_at"] is not None:
+                    update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+                else:
+                    update_data["updated_at"] = datetime.utcnow()
+
+                update_data["last_synced_at"] = datetime.utcnow()
 
                 for field, value in update_data.items():
                     setattr(existing, field, value)
@@ -184,9 +210,8 @@ def push_batches(bulk_data: BulkBatchCreate, db: Session = Depends(get_db)):
                 db_batch = Batch(
                     **batch_data.model_dump(exclude={"device_id"}),
                     device_id=batch_data.device_id,
-                    created_at=current_time,
-                    updated_at=current_time,
-                    last_synced_at=current_time
+                    last_synced_at=datetime.utcnow()
+                    # created_at and updated_at use defaults from model
                 )
                 db.add(db_batch)
                 created += 1
@@ -207,7 +232,6 @@ def push_batches(bulk_data: BulkBatchCreate, db: Session = Depends(get_db)):
 @router.post("/push/students")
 def push_students(bulk_data: BulkStudentCreate, db: Session = Depends(get_db)):
     """Push student data from mobile device to server"""
-    current_time = int(time.time() * 1000)
     created = 0
     updated = 0
     errors = []
@@ -219,8 +243,16 @@ def push_students(bulk_data: BulkStudentCreate, db: Session = Depends(get_db)):
 
             if existing:
                 update_data = student_data.model_dump(exclude={"device_id", "roll_number"})
-                update_data["updated_at"] = current_time
-                update_data["last_synced_at"] = current_time
+
+                # Convert timestamp fields to datetime
+                if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+                    update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+                if "updated_at" in update_data and update_data["updated_at"] is not None:
+                    update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+                else:
+                    update_data["updated_at"] = datetime.utcnow()
+
+                update_data["last_synced_at"] = datetime.utcnow()
 
                 for field, value in update_data.items():
                     setattr(existing, field, value)
@@ -229,9 +261,8 @@ def push_students(bulk_data: BulkStudentCreate, db: Session = Depends(get_db)):
                 db_student = Student(
                     **student_data.model_dump(exclude={"device_id"}),
                     device_id=student_data.device_id,
-                    created_at=current_time,
-                    updated_at=current_time,
-                    last_synced_at=current_time
+                    last_synced_at=datetime.utcnow()
+                    # created_at and updated_at use defaults from model
                 )
                 db.add(db_student)
                 created += 1
@@ -252,7 +283,6 @@ def push_students(bulk_data: BulkStudentCreate, db: Session = Depends(get_db)):
 @router.post("/push/fee-records")
 def push_fee_records(bulk_data: BulkFeeRecordCreate, db: Session = Depends(get_db)):
     """Push fee record data from mobile device to server"""
-    current_time = int(time.time() * 1000)
     created = 0
     skipped = 0
     errors = []
@@ -265,11 +295,15 @@ def push_fee_records(bulk_data: BulkFeeRecordCreate, db: Session = Depends(get_d
             if existing:
                 skipped += 1
             else:
+                # Convert timestamp to datetime for date field
+                fee_dict = fee_data.model_dump(exclude={"device_id"})
+                fee_dict["date"] = timestamp_to_datetime(fee_data.date)
+
                 db_fee = FeeRecord(
-                    **fee_data.model_dump(exclude={"device_id"}),
+                    **fee_dict,
                     device_id=fee_data.device_id,
-                    created_at=current_time,
-                    last_synced_at=current_time
+                    last_synced_at=datetime.utcnow()
+                    # created_at uses default from model
                 )
                 db.add(db_fee)
                 created += 1
@@ -290,24 +324,29 @@ def push_fee_records(bulk_data: BulkFeeRecordCreate, db: Session = Depends(get_d
 @router.post("/push/attendance")
 def push_attendance(bulk_data: BulkAttendanceCreate, db: Session = Depends(get_db)):
     """Push attendance data from mobile device to server"""
-    current_time = int(time.time() * 1000)
     created = 0
     errors = []
 
     for attendance_data in bulk_data.attendance:
         try:
+            # Convert timestamp to datetime for date field
+            attendance_date = timestamp_to_datetime(attendance_data.date)
+
             # Check for duplicate (same student, same date)
             existing = db.query(Attendance).filter(
                 Attendance.student_id == attendance_data.student_id,
-                Attendance.date == attendance_data.date
+                Attendance.date == attendance_date
             ).first()
 
             if not existing:
+                attendance_dict = attendance_data.model_dump(exclude={"device_id"})
+                attendance_dict["date"] = attendance_date
+
                 db_attendance = Attendance(
-                    **attendance_data.model_dump(exclude={"device_id"}),
+                    **attendance_dict,
                     device_id=attendance_data.device_id,
-                    created_at=current_time,
-                    last_synced_at=current_time
+                    last_synced_at=datetime.utcnow()
+                    # created_at uses default from model
                 )
                 db.add(db_attendance)
                 created += 1
@@ -327,34 +366,37 @@ def push_attendance(bulk_data: BulkAttendanceCreate, db: Session = Depends(get_d
 @router.post("/push/expenses")
 def push_expenses(bulk_data: BulkExpenseCreate, db: Session = Depends(get_db)):
     """Push expense data from mobile device to server"""
-    current_time = int(time.time() * 1000)
     created = 0
     updated = 0
     errors = []
 
     for expense_data in bulk_data.expenses:
         try:
-            # Check if expense with matching device_id and created_at exists
+            # Check if expense with matching device_id exists
             existing = db.query(Expense).filter(
-                Expense.device_id == expense_data.device_id,
-                Expense.created_at == current_time
+                Expense.device_id == expense_data.device_id
             ).first() if expense_data.device_id else None
 
             if existing:
                 # Update existing
                 for key, value in expense_data.model_dump(exclude_unset=True, exclude={"device_id"}).items():
+                    # Convert expense_date if present
+                    if key == "expense_date" and value is not None:
+                        value = timestamp_to_datetime(value)
                     setattr(existing, key, value)
-                existing.last_synced_at = current_time
-                existing.updated_at = current_time
+                existing.last_synced_at = datetime.utcnow()
+                existing.updated_at = datetime.utcnow()
                 updated += 1
             else:
-                # Create new
+                # Create new - convert expense_date
+                expense_dict = expense_data.model_dump(exclude={"device_id"})
+                expense_dict["expense_date"] = timestamp_to_datetime(expense_data.expense_date)
+
                 db_expense = Expense(
-                    **expense_data.model_dump(exclude={"device_id"}),
+                    **expense_dict,
                     device_id=expense_data.device_id,
-                    created_at=current_time,
-                    updated_at=current_time,
-                    last_synced_at=current_time
+                    last_synced_at=datetime.utcnow()
+                    # created_at and updated_at use defaults from model
                 )
                 db.add(db_expense)
                 created += 1

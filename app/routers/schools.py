@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from app.database import get_db
 from app.models import School
-from app.schemas import SchoolCreate, SchoolUpdate, SchoolResponse
-import time
+from app.schemas import SchoolCreate, SchoolUpdate, SchoolResponse, timestamp_to_datetime
 
 router = APIRouter()
 
@@ -36,13 +36,11 @@ def get_school(school_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=SchoolResponse, status_code=status.HTTP_201_CREATED)
 def create_school(school: SchoolCreate, db: Session = Depends(get_db)):
     """Create a new school"""
-    current_time = int(time.time() * 1000)
     db_school = School(
         **school.model_dump(exclude={"device_id"}),
         device_id=school.device_id,
-        created_at=current_time,
-        updated_at=current_time,
-        last_synced_at=current_time
+        last_synced_at=datetime.utcnow()
+        # created_at and updated_at use defaults from model
     )
     db.add(db_school)
     db.commit()
@@ -62,9 +60,16 @@ def update_school(
         raise HTTPException(status_code=404, detail="School not found")
 
     update_data = school.model_dump(exclude_unset=True)
-    if not update_data.get("updated_at"):
-        update_data["updated_at"] = int(time.time() * 1000)
-    update_data["last_synced_at"] = int(time.time() * 1000)
+
+    # Convert timestamp fields to datetime
+    if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+        update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+    if "updated_at" in update_data and update_data["updated_at"] is not None:
+        update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+    else:
+        update_data["updated_at"] = datetime.utcnow()
+
+    update_data["last_synced_at"] = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(db_school, field, value)
@@ -83,8 +88,8 @@ def delete_school(school_id: int, soft: bool = True, db: Session = Depends(get_d
 
     if soft:
         db_school.is_deleted = True
-        db_school.deleted_at = int(time.time() * 1000)
-        db_school.updated_at = int(time.time() * 1000)
+        db_school.deleted_at = datetime.utcnow()
+        db_school.updated_at = datetime.utcnow()
         db.commit()
         return {"message": "School soft deleted successfully"}
     else:
@@ -102,7 +107,7 @@ def restore_school(school_id: int, db: Session = Depends(get_db)):
 
     db_school.is_deleted = False
     db_school.deleted_at = None
-    db_school.updated_at = int(time.time() * 1000)
+    db_school.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_school)
     return db_school

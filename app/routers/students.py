@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from app.database import get_db
 from app.models import Student
-from app.schemas import StudentCreate, StudentUpdate, StudentResponse
-import time
+from app.schemas import StudentCreate, StudentUpdate, StudentResponse, timestamp_to_datetime
 
 router = APIRouter()
 
@@ -61,13 +61,11 @@ def create_student(student: StudentCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Roll number already exists")
 
-    current_time = int(time.time() * 1000)
     db_student = Student(
         **student.model_dump(exclude={"device_id"}),
         device_id=student.device_id,
-        created_at=current_time,
-        updated_at=current_time,
-        last_synced_at=current_time
+        last_synced_at=datetime.utcnow()
+        # created_at and updated_at use defaults from model
     )
     db.add(db_student)
     db.commit()
@@ -87,9 +85,16 @@ def update_student(
         raise HTTPException(status_code=404, detail="Student not found")
 
     update_data = student.model_dump(exclude_unset=True)
-    if not update_data.get("updated_at"):
-        update_data["updated_at"] = int(time.time() * 1000)
-    update_data["last_synced_at"] = int(time.time() * 1000)
+
+    # Convert timestamp fields to datetime
+    if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+        update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+    if "updated_at" in update_data and update_data["updated_at"] is not None:
+        update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+    else:
+        update_data["updated_at"] = datetime.utcnow()
+
+    update_data["last_synced_at"] = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(db_student, field, value)
@@ -108,8 +113,8 @@ def delete_student(student_id: int, soft: bool = True, db: Session = Depends(get
 
     if soft:
         db_student.is_deleted = True
-        db_student.deleted_at = int(time.time() * 1000)
-        db_student.updated_at = int(time.time() * 1000)
+        db_student.deleted_at = datetime.utcnow()
+        db_student.updated_at = datetime.utcnow()
         db.commit()
         return {"message": "Student soft deleted successfully"}
     else:
@@ -127,7 +132,7 @@ def restore_student(student_id: int, db: Session = Depends(get_db)):
 
     db_student.is_deleted = False
     db_student.deleted_at = None
-    db_student.updated_at = int(time.time() * 1000)
+    db_student.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_student)
     return db_student

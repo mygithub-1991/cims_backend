@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 from typing import List, Optional
+from datetime import datetime
 from app.database import get_db
 from app.models import Attendance, Student
-from app.schemas import AttendanceCreate, AttendanceResponse
-import time
+from app.schemas import AttendanceCreate, AttendanceResponse, timestamp_to_datetime
 
 router = APIRouter()
 
@@ -54,12 +54,15 @@ def get_attendance_record(attendance_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED)
 def create_attendance(attendance: AttendanceCreate, db: Session = Depends(get_db)):
     """Create a new attendance record"""
-    current_time = int(time.time() * 1000)
+    # Convert timestamp to datetime for date field
+    attendance_data = attendance.model_dump(exclude={"device_id"})
+    attendance_data["date"] = timestamp_to_datetime(attendance.date)
+
     db_attendance = Attendance(
-        **attendance.model_dump(exclude={"device_id"}),
+        **attendance_data,
         device_id=attendance.device_id,
-        created_at=current_time,
-        last_synced_at=current_time
+        last_synced_at=datetime.utcnow()
+        # created_at uses default from model
     )
     db.add(db_attendance)
     db.commit()
@@ -73,15 +76,18 @@ def create_bulk_attendance(
     db: Session = Depends(get_db)
 ):
     """Create multiple attendance records at once"""
-    current_time = int(time.time() * 1000)
     db_attendance_list = []
 
     for attendance in attendance_list:
+        # Convert timestamp to datetime for date field
+        attendance_data = attendance.model_dump(exclude={"device_id"})
+        attendance_data["date"] = timestamp_to_datetime(attendance.date)
+
         db_attendance = Attendance(
-            **attendance.model_dump(exclude={"device_id"}),
+            **attendance_data,
             device_id=attendance.device_id,
-            created_at=current_time,
-            last_synced_at=current_time
+            last_synced_at=datetime.utcnow()
+            # created_at uses default from model
         )
         db_attendance_list.append(db_attendance)
 

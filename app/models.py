@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, ForeignKey, Text, Enum
+from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, ForeignKey, Text, Enum, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
+from datetime import datetime
 import enum
 
 
@@ -22,10 +23,10 @@ class User(Base):
     role = Column(Enum(UserRole), nullable=False, default=UserRole.RECEPTION)
     is_active = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
-    updated_at = Column(BigInteger, nullable=False)
-    last_login_at = Column(BigInteger, nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class School(Base):
@@ -36,13 +37,13 @@ class School(Base):
     address = Column(String(500), nullable=False)
     pincode = Column(String(20), nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
-    updated_at = Column(BigInteger, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
-    last_synced_at = Column(BigInteger, nullable=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
 
     students = relationship("Student", back_populates="school")
 
@@ -55,15 +56,15 @@ class Teacher(Base):
     subject = Column(String(255), nullable=False)
     contact_number = Column(String(20), nullable=False)
     salary = Column(Float, nullable=False)
-    date_of_joining = Column(BigInteger, nullable=False)
+    date_of_joining = Column(DateTime(timezone=True), nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
-    updated_at = Column(BigInteger, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
-    last_synced_at = Column(BigInteger, nullable=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
 
     batches = relationship("Batch", back_populates="teacher")
 
@@ -76,13 +77,13 @@ class Batch(Base):
     time = Column(String(100), nullable=False)
     teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="NO ACTION"), nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
-    updated_at = Column(BigInteger, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
-    last_synced_at = Column(BigInteger, nullable=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
 
     teacher = relationship("Teacher", back_populates="batches")
     students = relationship("Student", back_populates="batch")
@@ -104,13 +105,13 @@ class Student(Base):
     board = Column(String(100), nullable=True)
     school_id = Column(Integer, ForeignKey("schools.id", ondelete="NO ACTION"), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
-    updated_at = Column(BigInteger, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
-    last_synced_at = Column(BigInteger, nullable=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
 
     batch = relationship("Batch", back_populates="students")
     school = relationship("School", back_populates="students")
@@ -125,16 +126,16 @@ class FeeRecord(Base):
     student_id = Column(Integer, ForeignKey("students.id", ondelete="NO ACTION"), nullable=False)
     amount_paid = Column(Float, nullable=False)
     payment_method = Column(String(50), nullable=False)
-    date = Column(BigInteger, nullable=False)
+    date = Column(DateTime(timezone=True), nullable=False)
     receipt_id = Column(String(50), unique=True, nullable=False, index=True)
     remarks = Column(Text, nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
-    last_synced_at = Column(BigInteger, nullable=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
 
     student = relationship("Student", back_populates="fee_records")
 
@@ -144,15 +145,15 @@ class Attendance(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="NO ACTION"), nullable=False)
-    date = Column(BigInteger, nullable=False, index=True)
+    date = Column(DateTime(timezone=True), nullable=False, index=True)
     is_present = Column(Boolean, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
-    last_synced_at = Column(BigInteger, nullable=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
 
     student = relationship("Student", back_populates="attendance_records")
 
@@ -164,19 +165,19 @@ class Expense(Base):
     category = Column(String(100), nullable=False)  # Rent, Utilities, Salary, etc.
     description = Column(Text, nullable=False)
     amount = Column(Float, nullable=False)
-    expense_date = Column(BigInteger, nullable=False, index=True)
+    expense_date = Column(DateTime(timezone=True), nullable=False, index=True)
     payment_method = Column(String(50), nullable=False)  # Cash, UPI, Card, etc.
     vendor_name = Column(String(255), nullable=True)
     receipt_number = Column(String(100), nullable=True)
     notes = Column(Text, nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    deleted_at = Column(BigInteger, nullable=True)
-    created_at = Column(BigInteger, nullable=False)
-    updated_at = Column(BigInteger, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
-    last_synced_at = Column(BigInteger, nullable=True)
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class SyncLog(Base):
@@ -188,6 +189,6 @@ class SyncLog(Base):
     entity_type = Column(String(50), nullable=False)  # teacher, student, batch, etc.
     entity_id = Column(Integer, nullable=False)
     operation = Column(String(20), nullable=False)  # create, update, delete
-    synced_at = Column(BigInteger, nullable=False)
+    synced_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     status = Column(String(20), nullable=False)  # success, failed
     error_message = Column(Text, nullable=True)

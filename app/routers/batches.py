@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from app.database import get_db
 from app.models import Batch
-from app.schemas import BatchCreate, BatchUpdate, BatchResponse
-import time
+from app.schemas import BatchCreate, BatchUpdate, BatchResponse, timestamp_to_datetime
 
 router = APIRouter()
 
@@ -43,13 +43,11 @@ def get_batch(batch_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=BatchResponse, status_code=status.HTTP_201_CREATED)
 def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
     """Create a new batch"""
-    current_time = int(time.time() * 1000)
     db_batch = Batch(
         **batch.model_dump(exclude={"device_id"}),
         device_id=batch.device_id,
-        created_at=current_time,
-        updated_at=current_time,
-        last_synced_at=current_time
+        last_synced_at=datetime.utcnow()
+        # created_at and updated_at use defaults from model
     )
     db.add(db_batch)
     db.commit()
@@ -69,9 +67,16 @@ def update_batch(
         raise HTTPException(status_code=404, detail="Batch not found")
 
     update_data = batch.model_dump(exclude_unset=True)
-    if not update_data.get("updated_at"):
-        update_data["updated_at"] = int(time.time() * 1000)
-    update_data["last_synced_at"] = int(time.time() * 1000)
+
+    # Convert timestamp fields to datetime
+    if "deleted_at" in update_data and update_data["deleted_at"] is not None:
+        update_data["deleted_at"] = timestamp_to_datetime(update_data["deleted_at"])
+    if "updated_at" in update_data and update_data["updated_at"] is not None:
+        update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
+    else:
+        update_data["updated_at"] = datetime.utcnow()
+
+    update_data["last_synced_at"] = datetime.utcnow()
 
     for field, value in update_data.items():
         setattr(db_batch, field, value)
@@ -90,8 +95,8 @@ def delete_batch(batch_id: int, soft: bool = True, db: Session = Depends(get_db)
 
     if soft:
         db_batch.is_deleted = True
-        db_batch.deleted_at = int(time.time() * 1000)
-        db_batch.updated_at = int(time.time() * 1000)
+        db_batch.deleted_at = datetime.utcnow()
+        db_batch.updated_at = datetime.utcnow()
         db.commit()
         return {"message": "Batch soft deleted successfully"}
     else:
@@ -109,7 +114,7 @@ def restore_batch(batch_id: int, db: Session = Depends(get_db)):
 
     db_batch.is_deleted = False
     db_batch.deleted_at = None
-    db_batch.updated_at = int(time.time() * 1000)
+    db_batch.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_batch)
     return db_batch

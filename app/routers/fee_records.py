@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 from app.database import get_db
 from app.models import FeeRecord
-from app.schemas import FeeRecordCreate, FeeRecordResponse
-import time
+from app.schemas import FeeRecordCreate, FeeRecordResponse, timestamp_to_datetime
 
 router = APIRouter()
 
@@ -50,12 +50,15 @@ def create_fee_record(fee_record: FeeRecordCreate, db: Session = Depends(get_db)
     if existing:
         raise HTTPException(status_code=400, detail="Receipt ID already exists")
 
-    current_time = int(time.time() * 1000)
+    # Convert timestamp to datetime for date field
+    fee_data = fee_record.model_dump(exclude={"device_id"})
+    fee_data["date"] = timestamp_to_datetime(fee_record.date)
+
     db_fee_record = FeeRecord(
-        **fee_record.model_dump(exclude={"device_id"}),
+        **fee_data,
         device_id=fee_record.device_id,
-        created_at=current_time,
-        last_synced_at=current_time
+        last_synced_at=datetime.utcnow()
+        # created_at uses default from model
     )
     db.add(db_fee_record)
     db.commit()
