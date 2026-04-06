@@ -5,6 +5,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models import FeeRecord
 from app.schemas import FeeRecordCreate, FeeRecordResponse, timestamp_to_datetime
+from app.utils.timezone import now_ist
 
 router = APIRouter()
 
@@ -57,7 +58,7 @@ def create_fee_record(fee_record: FeeRecordCreate, db: Session = Depends(get_db)
     db_fee_record = FeeRecord(
         **fee_data,
         device_id=fee_record.device_id,
-        last_synced_at=datetime.utcnow()
+        last_synced_at=now_ist()
         # created_at uses default from model
     )
     db.add(db_fee_record)

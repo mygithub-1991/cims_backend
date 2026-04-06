@@ -5,6 +5,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models import Teacher
 from app.schemas import TeacherCreate, TeacherUpdate, TeacherResponse, timestamp_to_datetime
+from app.utils.timezone import now_ist
 
 router = APIRouter()
 
@@ -51,7 +52,7 @@ def create_teacher(teacher: TeacherCreate, db: Session = Depends(get_db)):
     db_teacher = Teacher(
         **teacher_data,
         device_id=teacher.device_id,
-        last_synced_at=datetime.utcnow()
+        last_synced_at=now_ist()
         # created_at and updated_at use defaults from model
     )
     db.add(db_teacher)
@@ -81,9 +82,9 @@ def update_teacher(
     if "updated_at" in update_data and update_data["updated_at"] is not None:
         update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
     else:
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = now_ist()
 
-    update_data["last_synced_at"] = datetime.utcnow()
+    update_data["last_synced_at"] = now_ist()
 
     for field, value in update_data.items():
         setattr(db_teacher, field, value)
@@ -102,8 +103,8 @@ def delete_teacher(teacher_id: int, soft: bool = True, db: Session = Depends(get
 
     if soft:
         db_teacher.is_deleted = True
-        db_teacher.deleted_at = datetime.utcnow()
-        db_teacher.updated_at = datetime.utcnow()
+        db_teacher.deleted_at = now_ist()
+        db_teacher.updated_at = now_ist()
         db.commit()
         return {"message": "Teacher soft deleted successfully"}
     else:
@@ -121,7 +122,7 @@ def restore_teacher(teacher_id: int, db: Session = Depends(get_db)):
 
     db_teacher.is_deleted = False
     db_teacher.deleted_at = None
-    db_teacher.updated_at = datetime.utcnow()
+    db_teacher.updated_at = now_ist()
     db.commit()
     db.refresh(db_teacher)
     return db_teacher

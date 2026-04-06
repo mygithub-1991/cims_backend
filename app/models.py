@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, Fore
 from sqlalchemy.orm import relationship
 from app.database import Base
 from datetime import datetime
+from app.utils.timezone import now_ist, IST
 import enum
 
 
@@ -24,8 +25,8 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now_ist, onupdate=now_ist)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
 
 
@@ -38,8 +39,8 @@ class School(Base):
     pincode = Column(String(20), nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now_ist, onupdate=now_ist)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
@@ -59,8 +60,8 @@ class Teacher(Base):
     date_of_joining = Column(DateTime(timezone=True), nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now_ist, onupdate=now_ist)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
@@ -78,8 +79,8 @@ class Batch(Base):
     teacher_id = Column(Integer, ForeignKey("teachers.id", ondelete="NO ACTION"), nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now_ist, onupdate=now_ist)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
@@ -106,8 +107,8 @@ class Student(Base):
     school_id = Column(Integer, ForeignKey("schools.id", ondelete="NO ACTION"), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now_ist, onupdate=now_ist)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
@@ -131,7 +132,7 @@ class FeeRecord(Base):
     remarks = Column(Text, nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
@@ -149,7 +150,7 @@ class Attendance(Base):
     is_present = Column(Boolean, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
@@ -172,8 +173,8 @@ class Expense(Base):
     notes = Column(Text, nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now_ist, onupdate=now_ist)
 
     # Mobile device tracking
     device_id = Column(String(255), nullable=True)
@@ -189,6 +190,6 @@ class SyncLog(Base):
     entity_type = Column(String(50), nullable=False)  # teacher, student, batch, etc.
     entity_id = Column(Integer, nullable=False)
     operation = Column(String(20), nullable=False)  # create, update, delete
-    synced_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    synced_at = Column(DateTime(timezone=True), nullable=False, default=now_ist)
     status = Column(String(20), nullable=False)  # success, failed
     error_message = Column(Text, nullable=True)

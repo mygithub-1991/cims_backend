@@ -19,6 +19,7 @@ from app.auth_schemas import (
     ChangePasswordRequest,
     RolePermissions
 )
+from app.utils.timezone import now_ist
 
 router = APIRouter()
 
@@ -81,7 +82,7 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         )
 
     # Update last login time
-    user.last_login_at = datetime.utcnow()
+    user.last_login_at = now_ist()
     db.commit()
 
     # Create access token
@@ -164,7 +165,7 @@ async def update_current_user(
     if "role" in update_data:
         del update_data["role"]
 
-    update_data["updated_at"] = datetime.utcnow()
+    update_data["updated_at"] = now_ist()
 
     for field, value in update_data.items():
         setattr(current_user, field, value)
@@ -189,7 +190,7 @@ async def change_password(
         )
 
     current_user.hashed_password = get_password_hash(password_data.new_password)
-    current_user.updated_at = datetime.utcnow()
+    current_user.updated_at = now_ist()
     db.commit()
 
     return {"message": "Password changed successfully"}
@@ -243,7 +244,7 @@ async def update_user(
                 detail=f"Invalid role. Must be one of: {[r.value for r in UserRole]}",
             )
 
-    update_data["updated_at"] = datetime.utcnow()
+    update_data["updated_at"] = now_ist()
 
     for field, value in update_data.items():
         setattr(user, field, value)
@@ -272,8 +273,8 @@ async def delete_user(
         )
 
     user.is_deleted = True
-    user.deleted_at = datetime.utcnow()
-    user.updated_at = datetime.utcnow()
+    user.deleted_at = now_ist()
+    user.updated_at = now_ist()
     db.commit()
 
     return {"message": "User deleted successfully"}

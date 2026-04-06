@@ -2,12 +2,8 @@ from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, Any
 from datetime import datetime
 
-
-def datetime_to_timestamp(dt: Optional[datetime]) -> Optional[int]:
-    """Convert datetime to Unix timestamp (milliseconds)"""
-    if dt is None:
-        return None
-    return int(dt.timestamp() * 1000)
+# Import IST timezone utilities
+from app.utils.timezone import datetime_to_timestamp
 
 
 class LoginRequest(BaseModel):

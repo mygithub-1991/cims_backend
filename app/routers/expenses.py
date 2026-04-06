@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Expense
 from app.schemas import ExpenseCreate, ExpenseUpdate, ExpenseResponse, BulkExpenseCreate, timestamp_to_datetime
 from app.auth import get_current_user
+from app.utils.timezone import now_ist
 
 router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
@@ -79,7 +80,7 @@ def create_expense(
         receipt_number=expense.receipt_number,
         notes=expense.notes,
         device_id=expense.device_id,
-        last_synced_at=datetime.utcnow()
+        last_synced_at=now_ist()
         # created_at and updated_at use defaults from model
     )
 
@@ -111,7 +112,7 @@ def update_expense(
     if "updated_at" in update_data and update_data["updated_at"] is not None:
         update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
     else:
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = now_ist()
 
     for key, value in update_data.items():
         setattr(db_expense, key, value)
@@ -137,7 +138,7 @@ def delete_expense(
         db.delete(db_expense)
     else:
         db_expense.is_deleted = True
-        db_expense.deleted_at = datetime.utcnow()
+        db_expense.deleted_at = now_ist()
 
     db.commit()
     return {"message": "Expense deleted successfully"}
@@ -156,7 +157,7 @@ def restore_expense(
 
     db_expense.is_deleted = False
     db_expense.deleted_at = None
-    db_expense.updated_at = datetime.utcnow()
+    db_expense.updated_at = now_ist()
 
     db.commit()
     return {"message": "Expense restored successfully"}
@@ -182,7 +183,7 @@ def create_bulk_expenses(
             receipt_number=expense.receipt_number,
             notes=expense.notes,
             device_id=expense.device_id,
-            last_synced_at=datetime.utcnow()
+            last_synced_at=now_ist()
             # created_at and updated_at use defaults from model
         )
         db_expenses.append(db_expense)

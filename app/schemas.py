@@ -2,19 +2,12 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Any
 from datetime import datetime
 
-
-def datetime_to_timestamp(dt: Optional[datetime]) -> Optional[int]:
-    """Convert datetime to Unix timestamp (milliseconds)"""
-    if dt is None:
-        return None
-    return int(dt.timestamp() * 1000)
-
-
-def timestamp_to_datetime(ts: Optional[int]) -> Optional[datetime]:
-    """Convert Unix timestamp (milliseconds) to datetime"""
-    if ts is None:
-        return None
-    return datetime.fromtimestamp(ts / 1000)
+# Import IST timezone utilities
+from app.utils.timezone import (
+    timestamp_to_ist_datetime as timestamp_to_datetime,
+    datetime_to_timestamp,
+    IST
+)
 
 
 # School Schemas

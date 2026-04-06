@@ -6,6 +6,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models import Attendance, Student
 from app.schemas import AttendanceCreate, AttendanceResponse, timestamp_to_datetime
+from app.utils.timezone import now_ist
 
 router = APIRouter()
 
@@ -67,7 +68,7 @@ def create_attendance(attendance: AttendanceCreate, db: Session = Depends(get_db
     db_attendance = Attendance(
         **attendance_data,
         device_id=attendance.device_id,
-        last_synced_at=datetime.utcnow()
+        last_synced_at=now_ist()
         # created_at uses default from model
     )
     db.add(db_attendance)
@@ -92,7 +93,7 @@ def create_bulk_attendance(
         db_attendance = Attendance(
             **attendance_data,
             device_id=attendance.device_id,
-            last_synced_at=datetime.utcnow()
+            last_synced_at=now_ist()
             # created_at uses default from model
         )
         db_attendance_list.append(db_attendance)

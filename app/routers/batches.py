@@ -5,6 +5,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models import Batch
 from app.schemas import BatchCreate, BatchUpdate, BatchResponse, timestamp_to_datetime
+from app.utils.timezone import now_ist
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ def create_batch(batch: BatchCreate, db: Session = Depends(get_db)):
     db_batch = Batch(
         **batch.model_dump(exclude={"device_id"}),
         device_id=batch.device_id,
-        last_synced_at=datetime.utcnow()
+        last_synced_at=now_ist()
         # created_at and updated_at use defaults from model
     )
     db.add(db_batch)
@@ -74,9 +75,9 @@ def update_batch(
     if "updated_at" in update_data and update_data["updated_at"] is not None:
         update_data["updated_at"] = timestamp_to_datetime(update_data["updated_at"])
     else:
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = now_ist()
 
-    update_data["last_synced_at"] = datetime.utcnow()
+    update_data["last_synced_at"] = now_ist()
 
     for field, value in update_data.items():
         setattr(db_batch, field, value)
@@ -95,8 +96,8 @@ def delete_batch(batch_id: int, soft: bool = True, db: Session = Depends(get_db)
 
     if soft:
         db_batch.is_deleted = True
-        db_batch.deleted_at = datetime.utcnow()
-        db_batch.updated_at = datetime.utcnow()
+        db_batch.deleted_at = now_ist()
+        db_batch.updated_at = now_ist()
         db.commit()
         return {"message": "Batch soft deleted successfully"}
     else:
@@ -114,7 +115,7 @@ def restore_batch(batch_id: int, db: Session = Depends(get_db)):
 
     db_batch.is_deleted = False
     db_batch.deleted_at = None
-    db_batch.updated_at = datetime.utcnow()
+    db_batch.updated_at = now_ist()
     db.commit()
     db.refresh(db_batch)
     return db_batch
