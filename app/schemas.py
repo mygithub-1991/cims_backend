@@ -33,10 +33,10 @@ class SchoolUpdate(BaseModel):
 class SchoolResponse(SchoolBase):
     id: int
     is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    updated_at: int
-    last_synced_at: Optional[int]
+    deleted_at: Optional[int] = Field(None, description="Deletion timestamp (Unix milliseconds, IST)")
+    created_at: int = Field(..., description="Creation timestamp (Unix milliseconds, IST)")
+    updated_at: int = Field(..., description="Last update timestamp (Unix milliseconds, IST)")
+    last_synced_at: Optional[int] = Field(None, description="Last sync timestamp (Unix milliseconds, IST)")
 
     @field_validator('deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
     @classmethod
@@ -57,7 +57,7 @@ class TeacherBase(BaseModel):
     subject: str
     contact_number: str
     salary: float
-    date_of_joining: int  # Timestamp for API
+    date_of_joining: int = Field(..., description="Joining date (Unix milliseconds, IST)")
 
 
 class TeacherCreate(TeacherBase):
@@ -78,10 +78,10 @@ class TeacherUpdate(BaseModel):
 class TeacherResponse(TeacherBase):
     id: int
     is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    updated_at: int
-    last_synced_at: Optional[int]
+    deleted_at: Optional[int] = Field(None, description="Deletion timestamp (Unix milliseconds, IST)")
+    created_at: int = Field(..., description="Creation timestamp (Unix milliseconds, IST)")
+    updated_at: int = Field(..., description="Last update timestamp (Unix milliseconds, IST)")
+    last_synced_at: Optional[int] = Field(None, description="Last sync timestamp (Unix milliseconds, IST)")
 
     @field_validator('date_of_joining', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
     @classmethod
@@ -119,10 +119,10 @@ class BatchUpdate(BaseModel):
 class BatchResponse(BatchBase):
     id: int
     is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    updated_at: int
-    last_synced_at: Optional[int]
+    deleted_at: Optional[int] = Field(None, description="Deletion timestamp (Unix milliseconds, IST)")
+    created_at: int = Field(..., description="Creation timestamp (Unix milliseconds, IST)")
+    updated_at: int = Field(..., description="Last update timestamp (Unix milliseconds, IST)")
+    last_synced_at: Optional[int] = Field(None, description="Last sync timestamp (Unix milliseconds, IST)")
 
     @field_validator('deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
     @classmethod
@@ -143,7 +143,6 @@ class StudentBase(BaseModel):
     name: str
     contact_number: str
     total_fees: float
-    paid_fees: float = 0.0
     batch_id: int
     payment_mode: str
     installment_type: Optional[str] = None
@@ -160,7 +159,6 @@ class StudentUpdate(BaseModel):
     name: Optional[str] = None
     contact_number: Optional[str] = None
     total_fees: Optional[float] = None
-    paid_fees: Optional[float] = None
     batch_id: Optional[int] = None
     payment_mode: Optional[str] = None
     installment_type: Optional[str] = None
@@ -174,11 +172,12 @@ class StudentUpdate(BaseModel):
 
 class StudentResponse(StudentBase):
     id: int
+    paid_fees: float = Field(..., description="Total paid fees (computed from fee_records)")
     is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    updated_at: int
-    last_synced_at: Optional[int]
+    deleted_at: Optional[int] = Field(None, description="Deletion timestamp (Unix milliseconds, IST)")
+    created_at: int = Field(..., description="Creation timestamp (Unix milliseconds, IST)")
+    updated_at: int = Field(..., description="Last update timestamp (Unix milliseconds, IST)")
+    last_synced_at: Optional[int] = Field(None, description="Last sync timestamp (Unix milliseconds, IST)")
 
     @field_validator('deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
     @classmethod
@@ -198,7 +197,7 @@ class FeeRecordBase(BaseModel):
     student_id: int
     amount_paid: float
     payment_method: str
-    date: int
+    date: int = Field(..., description="Payment date (Unix milliseconds, IST)")
     receipt_id: str
     remarks: Optional[str] = None
 
@@ -210,9 +209,9 @@ class FeeRecordCreate(FeeRecordBase):
 class FeeRecordResponse(FeeRecordBase):
     id: int
     is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    last_synced_at: Optional[int]
+    deleted_at: Optional[int] = Field(None, description="Deletion timestamp (Unix milliseconds, IST)")
+    created_at: int = Field(..., description="Creation timestamp (Unix milliseconds, IST)")
+    last_synced_at: Optional[int] = Field(None, description="Last sync timestamp (Unix milliseconds, IST)")
 
     @field_validator('date', 'deleted_at', 'created_at', 'last_synced_at', mode='before')
     @classmethod
@@ -230,7 +229,7 @@ class FeeRecordResponse(FeeRecordBase):
 # Attendance Schemas
 class AttendanceBase(BaseModel):
     student_id: int
-    date: int
+    date: int = Field(..., description="Attendance date (Unix milliseconds, IST)")
     is_present: bool
 
 
@@ -241,9 +240,9 @@ class AttendanceCreate(AttendanceBase):
 class AttendanceResponse(AttendanceBase):
     id: int
     is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    last_synced_at: Optional[int]
+    deleted_at: Optional[int] = Field(None, description="Deletion timestamp (Unix milliseconds, IST)")
+    created_at: int = Field(..., description="Creation timestamp (Unix milliseconds, IST)")
+    last_synced_at: Optional[int] = Field(None, description="Last sync timestamp (Unix milliseconds, IST)")
 
     @field_validator('date', 'deleted_at', 'created_at', 'last_synced_at', mode='before')
     @classmethod
@@ -263,7 +262,7 @@ class ExpenseBase(BaseModel):
     category: str
     description: str
     amount: float
-    expense_date: int
+    expense_date: int = Field(..., description="Expense date (Unix milliseconds, IST)")
     payment_method: str
     vendor_name: Optional[str] = None
     receipt_number: Optional[str] = None
@@ -291,10 +290,10 @@ class ExpenseUpdate(BaseModel):
 class ExpenseResponse(ExpenseBase):
     id: int
     is_deleted: bool
-    deleted_at: Optional[int]
-    created_at: int
-    updated_at: int
-    last_synced_at: Optional[int]
+    deleted_at: Optional[int] = Field(None, description="Deletion timestamp (Unix milliseconds, IST)")
+    created_at: int = Field(..., description="Creation timestamp (Unix milliseconds, IST)")
+    updated_at: int = Field(..., description="Last update timestamp (Unix milliseconds, IST)")
+    last_synced_at: Optional[int] = Field(None, description="Last sync timestamp (Unix milliseconds, IST)")
 
     @field_validator('expense_date', 'deleted_at', 'created_at', 'updated_at', 'last_synced_at', mode='before')
     @classmethod

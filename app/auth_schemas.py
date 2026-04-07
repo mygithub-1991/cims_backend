@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, Any
 from datetime import datetime
 
@@ -33,8 +33,8 @@ class UserResponse(BaseModel):
     full_name: str
     role: str
     is_active: bool
-    created_at: int
-    last_login_at: Optional[int]
+    created_at: int = Field(..., description="Account creation timestamp (Unix milliseconds, IST)")
+    last_login_at: Optional[int] = Field(None, description="Last login timestamp (Unix milliseconds, IST)")
 
     @field_validator('created_at', 'last_login_at', mode='before')
     @classmethod
