@@ -98,7 +98,7 @@ class Student(Base):
     name = Column(String(255), nullable=False)
     contact_number = Column(String(20), nullable=False)
     total_fees = Column(Float, nullable=False)
-    paid_fees = Column(Float, default=0.0, nullable=False)
+    # REMOVED: paid_fees column - now calculated dynamically from fee_records
     batch_id = Column(Integer, ForeignKey("batches.id", ondelete="NO ACTION"), nullable=False)
     payment_mode = Column(String(50), nullable=False)
     installment_type = Column(String(50), nullable=True)
@@ -118,6 +118,18 @@ class Student(Base):
     school = relationship("School", back_populates="students")
     fee_records = relationship("FeeRecord", back_populates="student")
     attendance_records = relationship("Attendance", back_populates="student")
+
+    @property
+    def paid_fees(self) -> float:
+        """
+        Calculate paid fees dynamically from fee_records.
+        This is the single source of truth for paid fees.
+        """
+        return sum(
+            record.amount_paid
+            for record in self.fee_records
+            if not record.is_deleted
+        )
 
 
 class FeeRecord(Base):
