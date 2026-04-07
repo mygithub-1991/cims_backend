@@ -82,23 +82,40 @@ def create_bulk_attendance(
     attendance_list: List[AttendanceCreate],
     db: Session = Depends(get_db)
 ):
-    """Create multiple attendance records at once"""
+    """Create multiple attendance records at once (prevents duplicates)"""
     db_attendance_list = []
 
     for attendance in attendance_list:
         # Convert timestamp to datetime for date field
         attendance_data = attendance.model_dump(exclude={"device_id"})
-        attendance_data["date"] = timestamp_to_datetime(attendance.date)
+        date_dt = timestamp_to_datetime(attendance.date)
+        attendance_data["date"] = date_dt
 
-        db_attendance = Attendance(
-            **attendance_data,
-            device_id=attendance.device_id,
-            last_synced_at=now_ist()
-            # created_at uses default from model
-        )
-        db_attendance_list.append(db_attendance)
+        # Check if attendance already exists for this student on this date
+        existing = db.query(Attendance).filter(
+            Attendance.student_id == attendance.student_id,
+            func.date(Attendance.date) == func.date(date_dt),
+            Attendance.is_deleted == False
+        ).first()
 
-    db.add_all(db_attendance_list)
+        if existing:
+            # Update existing record instead of creating duplicate
+            existing.is_present = attendance.is_present
+            existing.last_synced_at = now_ist()
+            if attendance.device_id:
+                existing.device_id = attendance.device_id
+            db_attendance_list.append(existing)
+        else:
+            # Create new record
+            db_attendance = Attendance(
+                **attendance_data,
+                device_id=attendance.device_id,
+                last_synced_at=now_ist()
+                # created_at uses default from model
+            )
+            db.add(db_attendance)
+            db_attendance_list.append(db_attendance)
+
     db.commit()
 
     for record in db_attendance_list:
@@ -145,6 +162,46 @@ def get_attendance_by_batch(
         ))
 
     return query.order_by(Attendance.date.desc()).all()
+
+
+@router.get("/check-exists/{batch_id}/{date}")
+def check_attendance_exists(
+    batch_id: int,
+    date: int,
+    db: Session = Depends(get_db)
+):
+    """Check if attendance has been marked for a batch on a specific date"""
+    # Get students in the batch
+    students = db.query(Student).filter(
+        Student.batch_id == batch_id,
+        Student.is_deleted == False
+    ).all()
+
+    if not students:
+        return {
+            "exists": False,
+            "student_count": 0,
+            "marked_count": 0,
+            "message": "No students found in this batch"
+        }
+
+    student_ids = [s.id for s in students]
+    date_dt = timestamp_to_datetime(date)
+
+    # Count how many students have attendance marked for this date
+    marked_count = db.query(Attendance).filter(
+        Attendance.student_id.in_(student_ids),
+        func.date(Attendance.date) == func.date(date_dt),
+        Attendance.is_deleted == False
+    ).count()
+
+    return {
+        "exists": marked_count > 0,
+        "student_count": len(students),
+        "marked_count": marked_count,
+        "all_marked": marked_count == len(students),
+        "message": f"Attendance marked for {marked_count} out of {len(students)} students"
+    }
 
 
 @router.get("/stats/summary")
